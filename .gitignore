@@ -6,3 +6,6 @@ ai-data.json
 
 # Tasks
 *_solution.py
+
+# Exclude service account key for Google Cloud Platform
+my-project-19409-radicalai-62f99d17079b.json
