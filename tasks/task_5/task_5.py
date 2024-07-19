@@ -1,7 +1,7 @@
 import sys
 import os
 import streamlit as st
-sys.path.append(os.path.abspath('../../'))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from tasks.task_3.task_3 import DocumentProcessor
 from tasks.task_4.task_4 import EmbeddingClient
 
@@ -10,6 +10,7 @@ from tasks.task_4.task_4 import EmbeddingClient
 from langchain_core.documents import Document
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.vectorstores import Chroma
+
 
 class ChromaCollectionCreator:
     def __init__(self, processor, embed_model):
@@ -57,6 +58,15 @@ class ChromaCollectionCreator:
         # Use a TextSplitter from Langchain to split the documents into smaller text chunks
         # https://python.langchain.com/docs/modules/data_connection/document_transformers/character_text_splitter
         # [Your code here for splitting documents]
+        separator = "."
+        chunk_size = 1000
+        chunk_overlap = 200
+        text_splitter = CharacterTextSplitter(
+            separator=separator,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap
+        )
+        texts = text_splitter.split_documents(self.processor.pages)
         
         if texts is not None:
             st.success(f"Successfully split pages to {len(texts)} documents!", icon="✅")
@@ -65,7 +75,7 @@ class ChromaCollectionCreator:
         # https://docs.trychroma.com/
         # Create a Chroma in-memory client using the text chunks and the embeddings model
         # [Your code here for creating Chroma collection]
-        
+        self.db = Chroma.from_documents(texts, self.embed_model)
         if self.db:
             st.success("Successfully created Chroma Collection!", icon="✅")
         else:
@@ -92,12 +102,16 @@ if __name__ == "__main__":
     processor.ingest_documents()
     
     embed_config = {
-        "model_name": "textembedding-gecko@003",
-        "project": "YOUR PROJECT ID HERE",
+        "model_name": "text-embedding-004",
+        "project": "my-project-19409-radicalai",
         "location": "us-central1"
     }
     
-    embed_client = EmbeddingClient(**embed_config) # Initialize from Task 4
+    embed_client = EmbeddingClient(
+        embed_config["model_name"],
+        embed_config["project"],
+        embed_config["location"]
+    )    # Initialize from Task 4
     
     chroma_creator = ChromaCollectionCreator(processor, embed_client)
     

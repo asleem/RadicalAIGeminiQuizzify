@@ -3,7 +3,7 @@ from langchain_google_vertexai import VertexAI
 from langchain_core.prompts import PromptTemplate
 import os
 import sys
-sys.path.append(os.path.abspath('../../'))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 class QuizGenerator:
     def __init__(self, topic=None, num_questions=1, vectorstore=None):
@@ -70,8 +70,14 @@ class QuizGenerator:
 
         Note: Ensure you have appropriate access or API keys if required by the model or platform.
         """
+        self.llm_model_name = "gemini-pro"
+        self.temperature = "0.4"
+        self.max_output_tokens = 400
         self.llm = VertexAI(
             ############# YOUR CODE HERE ############
+            model_name=self.llm_model_name,
+            temperature=self.temperature,
+            max_output_tokens=self.max_output_tokens
         )
         
     def generate_question_with_vectorstore(self):
@@ -103,30 +109,33 @@ class QuizGenerator:
         # Initialize the LLM from the 'init_llm' method if not already initialized
         # Raise an error if the vectorstore is not initialized on the class
         ############# YOUR CODE HERE ############
-        
+        if not hasattr(self, 'llm') or self.llm is None:
+            self.init_llm()
+        if not hasattr(self, 'vectorstore') or self.vectorstore is None:
+            raise ValueError("Vectorstore is not initialized!")
+
         from langchain_core.runnables import RunnablePassthrough, RunnableParallel
 
         ############# YOUR CODE HERE ############
         # Enable a Retriever using the as_retriever() method on the VectorStore object
         # HINT: Use the vectorstore as the retriever initialized on the class
         ############# YOUR CODE HERE ############
-        
+        retriever = self.vectorstore.db.as_retriever()
         ############# YOUR CODE HERE ############
         # Use the system template to create a PromptTemplate
         # HINT: Use the .from_template method on the PromptTemplate class and pass in the system template
         ############# YOUR CODE HERE ############
-        
+        prompt_template = PromptTemplate.from_template(self.system_template)
         # RunnableParallel allows Retriever to get relevant documents
         # RunnablePassthrough allows chain.invoke to send self.topic to LLM
         setup_and_retrieval = RunnableParallel(
             {"context": retriever, "topic": RunnablePassthrough()}
         )
-        
         ############# YOUR CODE HERE ############
         # Create a chain with the Retriever, PromptTemplate, and LLM
         # HINT: chain = RETRIEVER | PROMPT | LLM 
         ############# YOUR CODE HERE ############
-
+        chain = setup_and_retrieval | prompt_template | self.llm
         # Invoke the chain with the topic as input
         response = chain.invoke(self.topic)
         return response
@@ -137,11 +146,10 @@ if __name__ == "__main__":
     from tasks.task_3.task_3 import DocumentProcessor
     from tasks.task_4.task_4 import EmbeddingClient
     from tasks.task_5.task_5 import ChromaCollectionCreator
-    
-    
+
     embed_config = {
-        "model_name": "textembedding-gecko@003",
-        "project": "YOUR-PROJECT-ID-HERE",
+        "model_name": "text-embedding-004",
+        "project": "my-project-19409-radicalai",
         "location": "us-central1"
     }
     
@@ -150,8 +158,12 @@ if __name__ == "__main__":
         st.header("Quiz Builder")
         processor = DocumentProcessor()
         processor.ingest_documents()
-    
-        embed_client = EmbeddingClient(**embed_config) # Initialize from Task 4
+
+        embed_client = EmbeddingClient(
+            embed_config["model_name"],
+            embed_config["project"],
+            embed_config["location"]
+        )  # Initialize from Task 4
     
         chroma_creator = ChromaCollectionCreator(processor, embed_client)
 
@@ -179,3 +191,4 @@ if __name__ == "__main__":
         with st.container():
             st.header("Generated Quiz Question: ")
             st.write(question)
+

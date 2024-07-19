@@ -20,4 +20,3 @@ with st.form("Load Data"):
 
 ####### SCREEN 2
 # Task 3:
-# test push withput pushing the json file
