@@ -2,13 +2,14 @@ import streamlit as st
 import os
 import sys
 import json
-sys.path.append(os.path.abspath('../../'))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from tasks.task_3.task_3 import DocumentProcessor
 from tasks.task_4.task_4 import EmbeddingClient
 from tasks.task_5.task_5 import ChromaCollectionCreator
 
 from langchain_core.prompts import PromptTemplate
 from langchain_google_vertexai import VertexAI
+
 
 class QuizGenerator:
     def __init__(self, topic=None, num_questions=1, vectorstore=None):
@@ -31,7 +32,8 @@ class QuizGenerator:
 
         self.vectorstore = vectorstore
         self.llm = None
-        self.question_bank = [] # Initialize the question bank to store questions
+        self.question_bank = []
+        # Initialize the question bank to store questions
         self.system_template = """
             You are a subject matter expert on the topic: {topic}
             
@@ -86,7 +88,7 @@ class QuizGenerator:
         from langchain_core.runnables import RunnablePassthrough, RunnableParallel
 
         # Enable a Retriever
-        retriever = self.vectorstore.as_retriever()
+        retriever = self.vectorstore.db.as_retriever()
         
         # Use the system template to create a PromptTemplate
         prompt = PromptTemplate.from_template(self.system_template)
@@ -122,28 +124,40 @@ class QuizGenerator:
         Note: This method relies on `generate_question_with_vectorstore` for question generation and `validate_question` for ensuring question uniqueness. Ensure `question_bank` is properly initialized and managed.
         """
         self.question_bank = [] # Reset the question bank
-
+        st.write("Generating", self.num_questions, "questions for topic:", self.topic)
         for _ in range(self.num_questions):
-            ##### YOUR CODE HERE #####
-            question_str = # Use class method to generate question
-            
-            ##### YOUR CODE HERE #####
-            try:
-                # Convert the JSON String to a dictionary
-            except json.JSONDecodeError:
-                print("Failed to decode question JSON.")
-                continue  # Skip this iteration if JSON decoding fails
-            ##### YOUR CODE HERE #####
+            retry_count = 0  # Initialize retry counter for each question
+            while retry_count < 10:  # Retry limit is set to 3
+                print(retry_count)
+                ##### YOUR CODE HERE #####
+                # question_str = # Use class method to generate question
+                question_str = self.generate_question_with_vectorstore()
+                #st.write("here is the json:", question_str)
+                ##### YOUR CODE HERE #####
+                try:
+                    question_dict = json.loads(question_str)  # Convert JSON String to a dictionary
+                    #st.write(question_dict)
+                    ##### YOUR CODE HERE #####
+                    # Validate the question using the validate_question method
+                    if self.validate_question(question_dict):
+                        print("Successfully generated unique question")
+                        # Add the valid and unique question to the bank
+                        self.question_bank.append(question_dict)
+                        break  # Exit while loop as question is valid
+                    else:
+                        print("Duplicate or invalid question detected.")
+                        retry_count += 1  # Increment retry count if question is not unique
+                except json.JSONDecodeError as e:
+                    print(f"Failed to decode question JSON:{e}")
+                    retry_count += 1  # Increment retry count
+                    #break  # Exit retry loop as question generation failed
 
-            ##### YOUR CODE HERE #####
-            # Validate the question using the validate_question method
-            if self.validate_question(question):
-                print("Successfully generated unique question")
-                # Add the valid and unique question to the bank
+            if retry_count >= 10:
+                print("Retry limit reached for generating unique question. Skipping to next question in the for loop.")
             else:
-                print("Duplicate or invalid question detected.")
-            ##### YOUR CODE HERE #####
-
+                print("for loop next iteration/execution")
+        st.write("Generating", self.num_questions, "questions for topic:", self.topic)
+        print("Generating", self.num_questions, "questions for topic:", self.topic)
         return self.question_bank
 
     def validate_question(self, question: dict) -> bool:
@@ -170,15 +184,21 @@ class QuizGenerator:
         # Consider missing 'question' key as invalid in the dict object
         # Check if a question with the same text already exists in the self.question_bank
         ##### YOUR CODE HERE #####
-        return is_unique
+        question_text = question.get("question")
+        if not question_text:
+            return False
+        elif self.question_bank is not None and len(self.question_bank) > 0:
+            is_unique = not any(q.get("question") == question_text for q in self.question_bank)
+            return is_unique
+        return True
 
 
 # Test Generating the Quiz
 if __name__ == "__main__":
-    
+
     embed_config = {
-        "model_name": "textembedding-gecko@003",
-        "project": "YOUR-PROJECT-ID-HERE",
+        "model_name": "text-embedding-004",
+        "project": "my-project-19409-radicalai",
         "location": "us-central1"
     }
     
@@ -187,8 +207,12 @@ if __name__ == "__main__":
         st.header("Quiz Builder")
         processor = DocumentProcessor()
         processor.ingest_documents()
-    
-        embed_client = EmbeddingClient(**embed_config) # Initialize from Task 4
+
+        embed_client = EmbeddingClient(
+            embed_config["model_name"],
+            embed_config["project"],
+            embed_config["location"]
+        )  # Initialize from Task 4
     
         chroma_creator = ChromaCollectionCreator(processor, embed_client)
     
@@ -217,5 +241,6 @@ if __name__ == "__main__":
         screen.empty()
         with st.container():
             st.header("Generated Quiz Question: ")
+            st.write("number of question generated=", len(question_bank))
             for question in question_bank:
                 st.write(question)
