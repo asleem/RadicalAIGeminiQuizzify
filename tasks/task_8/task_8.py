@@ -124,7 +124,7 @@ class QuizGenerator:
         Note: This method relies on `generate_question_with_vectorstore` for question generation and `validate_question` for ensuring question uniqueness. Ensure `question_bank` is properly initialized and managed.
         """
         self.question_bank = [] # Reset the question bank
-        st.write("Generating", self.num_questions, "questions for topic:", self.topic)
+        #st.write("Generating", self.num_questions, "questions for topic:", self.topic)
         for _ in range(self.num_questions):
             retry_count = 0  # Initialize retry counter for each question
             while retry_count < 10:  # Retry limit is set to 3
@@ -156,7 +156,7 @@ class QuizGenerator:
                 print("Retry limit reached for generating unique question. Skipping to next question in the for loop.")
             else:
                 print("for loop next iteration/execution")
-        st.write("Generating", self.num_questions, "questions for topic:", self.topic)
+        #st.write("Generating", self.num_questions, "questions for topic:", self.topic)
         print("Generating", self.num_questions, "questions for topic:", self.topic)
         return self.question_bank
 
