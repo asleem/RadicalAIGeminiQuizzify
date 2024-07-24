@@ -69,6 +69,7 @@ if __name__ == "__main__":
                     # Step 6: Set the question_index to 0 in st.session_state
                     if 'question_index' not in st.session_state:
                         st.session_state['question_index'] = 0
+                    screen.empty()
                     ##### YOUR CODE HERE #####
 
     if st.session_state.get("display_quiz"):
